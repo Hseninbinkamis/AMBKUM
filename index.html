@@ -1,0 +1,1576 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM BK UM 2026</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel untuk compile JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        html { scroll-behavior: smooth; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* --- ANIMASI BARU UNTUK ASESMEN --- */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-up {
+            animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0; 
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .pie-chart {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .pie-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px; height: 100px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center; justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+            color: #1e293b;
+            text-align: center;
+            z-index: 10;
+        }
+
+        /* Styling Scrollbar Khusus Chat */
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // =====================================================================
+        // KONFIGURASI DATABASE CLOUD
+        // =====================================================================
+        const myOwnFirebaseConfig = {
+            apiKey: "AIzaSyDPPs1tsBcd-j50LSPHRZ1-vDHLQRlXHeU",
+            authDomain: "ambksmantarnala2026.firebaseapp.com",
+            projectId: "ambksmantarnala2026",
+            storageBucket: "ambksmantarnala2026.firebasestorage.app",
+            messagingSenderId: "832316757911",
+            appId: "1:832316757911:web:802492d01b9997a68c96d2",
+            measurementId: "G-0FE7CYN975"
+        };
+
+        const envFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const isUsingCustomConfig = Boolean(myOwnFirebaseConfig && myOwnFirebaseConfig.apiKey && myOwnFirebaseConfig.apiKey.length > 5);
+        const finalConfig = isUsingCustomConfig ? myOwnFirebaseConfig : envFirebaseConfig;
+        const appId = 'am-bk-um-2026';
+
+        let app, auth, db;
+        if (finalConfig) {
+            app = initializeApp(finalConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+
+        // --- IKON (Inline SVG) ---
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            BookOpen: (p) => <Icon {...p} path={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>} />,
+            Users: (p) => <Icon {...p} path={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} />,
+            User: (p) => <Icon {...p} path={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />,
+            Briefcase: (p) => <Icon {...p} path={<><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>} />,
+            LogOut: (p) => <Icon {...p} path={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>} />,
+            CheckCircle: (p) => <Icon {...p} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />,
+            CheckSquare: (p) => <Icon {...p} path={<><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></>} />,
+            Lock: (p) => <Icon {...p} path={<><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>} />,
+            Download: (p) => <Icon {...p} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />,
+            ChevronRight: (p) => <Icon {...p} path={<polyline points="9 18 15 12 9 6"/>} />,
+            ChevronLeft: (p) => <Icon {...p} path={<polyline points="15 18 9 12 15 6"/>} />,
+            Search: (p) => <Icon {...p} path={<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>} />,
+            Activity: (p) => <Icon {...p} path={<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>} />,
+            TrendingUp: (p) => <Icon {...p} path={<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>} />,
+            Anchor: (p) => <Icon {...p} path={<><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></>} />,
+            Shield: (p) => <Icon {...p} path={<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>} />,
+            MessageSquare: (p) => <Icon {...p} path={<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>} />,
+            PieChart: (p) => <Icon {...p} path={<><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></>} />,
+            X: (p) => <Icon {...p} path={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />,
+            FileText: (p) => <Icon {...p} path={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></>} />,
+            HeartHandshake: (p) => <Icon {...p} path={<><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08v0c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.92 0l.29.29a2.82 2.82 0 0 1 0 3.92l-3.79 3.79a2.82 2.82 0 0 1-3.92 0l-1.47-1.47a2.82 2.82 0 0 0-3.92 0l-.29.29a2.82 2.82 0 0 0 0 3.92l3.79 3.79"/></>} />,
+            Menu: (p) => <Icon {...p} path={<><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></>} />,
+            Layout: (p) => <Icon {...p} path={<><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></>} />,
+            CloudOff: (p) => <Icon {...p} path={<><path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"/><line x1="1" y1="1" x2="23" y2="23"/></>} />,
+            CloudCheck: (p) => <Icon {...p} path={<><path d="M20 16.2A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="9 16 12 19 19 12"/></>} />,
+            Trash: (p) => <Icon {...p} path={<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>} />,
+            Edit: (p) => <Icon {...p} path={<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>} />,
+            PlusCircle: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></>} />,
+            Send: (p) => <Icon {...p} path={<><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></>} />,
+            Image: (p) => <Icon {...p} path={<><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>} />
+        };
+
+        // --- HELPER FUNCTION: Buat ID Room Chat & Validasi (Menggunakan Kode) ---
+        const generateRoomId = (nis) => {
+            return `room_${(nis || '').replace(/[^a-zA-Z0-9]/g, '')}`;
+        };
+
+        // --- DATA DEFAULT MATERI BK ---
+        const defaultMaterials = [
+            { id: '1', title: 'Strategi Manajemen Waktu di Asrama', domain: 'Belajar', author: 'Pak Hakam', content: 'Sebagai seorang Taruna, kegiatan akademik dan pembinaan (binsuh) sangat padat. Kunci utamanya adalah membuat skala prioritas. Kerjakan tugas yang memiliki tenggat waktu terdekat dan biasakan untuk tidak menunda pekerjaan sekecil apapun. Gunakan metode Pomodoro saat belajar mandiri di malam hari agar tidak mudah kelelahan.', imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800', materialUrl: 'https://www.kemdikbud.go.id/', timestamp: new Date().toISOString() },
+            { id: '2', title: 'Membangun Solidaritas Korps yang Sehat', domain: 'Sosial', author: 'Miss Thalia', content: 'Jiwa korsa adalah kebanggaan Taruna, namun harus ditempatkan pada konteks yang positif. Hindari *peer pressure* yang mengajak pada pelanggaran aturan. Jika terjadi konflik dengan rekan satu leton, selesaikan melalui jalur komunikasi terbuka atau libatkan Pamong Pengasuh sebagai mediator yang objektif.', imageUrl: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&q=80&w=800', materialUrl: 'https://www.kemdikbud.go.id/', timestamp: new Date().toISOString() },
+            { id: '3', title: 'Persiapan Menembus Akademi TNI/Polri & Kedinasan', domain: 'Karir', author: 'Miss Iis', content: 'Persiapan tidak bisa dilakukan dalam waktu singkat (SKS). Mulailah dari Kelas X untuk membina fisik, menjaga kesehatan mata dan postur, serta konsisten mempertahankan nilai akademik (khususnya Matematika, Bahasa Inggris). Kenali minat matra (Darat, Laut, Udara, Polisi) sejak dini agar fokus berlatih.', imageUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800', materialUrl: 'https://www.kemdikbud.go.id/', timestamp: new Date().toISOString() }
+        ];
+
+        // --- DATA PERNYATAAN MASALAH (20 Butir) ---
+        const akpdQuestions = {
+            pribadi: [
+                { id: 'P1', text: 'Saya tetap menjalankan ibadah tepat waktu meskipun jadwal sedang sangat padat.' },
+                { id: 'P2', text: 'Saya mampu mengatur waktu agar kewajiban ibadah tetap terlaksana di tengah jadwal yang padat..' },
+                { id: 'P3', text: 'Saya mampu tetap tenang saat menghadapi teguran dan hukuman yang disiplin.' },
+                { id: 'P4', text: 'Saya memiliki cara positif untuk mengatasi rasa rindu dengan rumah (homesick)..' },
+                { id: 'P5', text: 'Saya memiliki cara menenangkan diri saat merasa jenuh atau stress dengan rutinitas harian.' }
+            ],
+            sosial: [
+                { id: 'S1', text: 'Saya mampu menyesuaikan diri dengan budaya yang ada di sekolah.' },
+                { id: 'S2', text: 'Saya mampu berbaur dengan teman-teman yang memiliki latar belakang daerah yang berbeda.' },
+                { id: 'S3', text: 'Saya selalu mendahulukan kepentingan kelompok di atas kepentingan pribadi dalam kegiatan kelompok/korps.' },
+                { id: 'S4', text: 'Saya memahami tata krama dan etika berbicara yang berlaku di lingkungan semi-militer ini.' },
+                { id: 'S5', text: 'Saya percaya diri untuk menyampaikan pendapat secara terbuka kepada pihak sekolah atau guru.' }
+            ],
+            belajar: [
+                { id: 'B1', text: 'Saya mampu menjaga konsentrasi saat mengikuti pelajaran setelah kegiatan fisik.' },
+                { id: 'B2', text: 'Saya membutuhkan tips menjaga stamina tubuh agar tetap prima saat mengikuti pelajaran di kelas.' },
+                { id: 'B3', text: 'Saya bisa membagi waktu dengan baik antara jadwal latihan, makan, dan belajar mandiri.' },
+                { id: 'B4', text: 'Saya mengerjakan tugas tepat waktu.' },
+                { id: 'B5', text: 'Saya membutuhkan pelatihan tentang teknik manajemen waktu yang efektif untuk siswa asrama.' }
+            ],
+            karir: [
+                { id: 'K1', text: 'Saya sudah memiliki gambaran yang jelas mengenai perguruan tinggi atau akademi yang akan saya tuju.' },
+                { id: 'K2', text: 'Saya mempersiapkan diri sesuai standar akademik yang dipersyaratkan.' },
+                { id: 'K3', text: 'Saya memiliki alternatif rencana pendidikan atau karir selain sekolah kedinasan/ Akmil/ Akpol/ dll.' },
+                { id: 'K4', text: 'Saya merasa masa depan saya akan baik baik saja meskipun tidak lolos seleksi utama.' },
+                { id: 'K5', text: 'Saya membutuhkan layanan bimbingan atau konseling tentang menyikapi kegagalan dan mencari peluang baru.' }
+            ]
+        };
+
+        // --- DATA DAFTAR CEK MASALAH (DCM) ---
+        const dcmQuestions = {
+            kesehatan: [
+                { id: 'DCM_K1', text: 'Sering merasa pusing atau sakit kepala saat kegiatan binsuh.' },
+                { id: 'DCM_K2', text: 'Tidur sering terganggu atau mengalami insomnia di asrama.' },
+                { id: 'DCM_K3', text: 'Sering merasa lelah atau lemas yang berlebihan.' },
+                { id: 'DCM_K4', text: 'Mempunyai penyakit bawaan (asma, maag, dll) yang sering kambuh.' },
+                { id: 'DCM_K5', text: 'Pola makan tidak teratur / sering telat makan.' }
+            ],
+            keluarga: [
+                { id: 'DCM_F1', text: 'Merasa kurang mendapat perhatian/kasih sayang orang tua.' },
+                { id: 'DCM_F2', text: 'Sering terjadi pertengkaran/disharmoni di dalam keluarga.' },
+                { id: 'DCM_F3', text: 'Merasa tertekan dengan tuntutan orang tua yang terlalu tinggi.' },
+                { id: 'DCM_F4', text: 'Kondisi ekonomi keluarga saat ini sedang bermasalah.' },
+                { id: 'DCM_F5', text: 'Ada anggota keluarga yang sedang sakit keras.' }
+            ],
+            "keadaan kehidupan ekonomi": [
+                { id: 'DCM_kke1', text: 'Merasa minder / rendah diri bergaul dengan Taruna/i lain.' },
+                { id: 'DCM_kke2', text: 'Pernah menjadi korban *bullying* (perundungan) fisik atau verbal.' },
+                { id: 'DCM_kke3', text: 'Sering merasa cemas/takut berlebihan tanpa sebab yang jelas.' },
+                { id: 'DCM_kke4', text: 'Merasa kesulitan memaafkan kesalahan teman / pendendam.' },
+                { id: 'DCM_kke5', text: 'Kecanduan bermain gadget/game online/media sosial.' }
+            ]
+        };
+
+        // --- COMPONENTS ---
+        function App() {
+            const [currentUser, setCurrentUser] = useState(null); 
+            const [submissions, setSubmissions] = useState([]); 
+            const [materials, setMaterials] = useState(defaultMaterials); 
+            const [chats, setChats] = useState([]); 
+            const [announcement, setAnnouncement] = useState('"Integritas dan Kedisiplinan adalah kunci kesuksesan seorang Taruna. Jangan ragu untuk menghubungi layanan Bimbingan dan Konseling jika Anda mengalami kendala selama menempuh pendidikan."'); 
+            const [studentView, setStudentView] = useState('home'); 
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+            const [authUser, setAuthUser] = useState(null);
+            const [firebaseStatus, setFirebaseStatus] = useState('connecting');
+
+            useEffect(() => {
+                if (!auth) {
+                    setFirebaseStatus('error');
+                    return;
+                }
+                let isMounted = true;
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && !isUsingCustomConfig) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                        if (isMounted) setFirebaseStatus('connected');
+                    } catch (error) {
+                        console.error("Auth error:", error);
+                        if (error.code === 'auth/configuration-not-found' || error.code === 'auth/invalid-custom-token') {
+                             try {
+                                  await signInAnonymously(auth);
+                                  if (isMounted) setFirebaseStatus('connected');
+                             } catch (fallbackError) {
+                                  console.error("Fallback Auth error:", fallbackError);
+                                  if (isMounted) setFirebaseStatus('error');
+                             }
+                        } else {
+                             if (isMounted) setFirebaseStatus('error');
+                        }
+                    }
+                };
+                initAuth();
+
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                    if (isMounted) {
+                        setAuthUser(user);
+                        if (user) setFirebaseStatus('connected');
+                    }
+                });
+                return () => {
+                    isMounted = false;
+                    unsubscribe();
+                };
+            }, []);
+
+            useEffect(() => {
+                if (!authUser || !db) {
+                    const localData = JSON.parse(localStorage.getItem('bk_data_v4') || '[]');
+                    const localMat = JSON.parse(localStorage.getItem('bk_materi_v1') || '[]');
+                    const localChats = JSON.parse(localStorage.getItem('bk_chats_v1') || '[]');
+                    setSubmissions(localData);
+                    setChats(localChats);
+                    if(localMat.length > 0) setMaterials(localMat);
+                    return;
+                }
+
+                const submissionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'submissions');
+                const unsubscribeSub = onSnapshot(submissionsRef, (snapshot) => {
+                    const data = [];
+                    snapshot.forEach(doc => data.push({ ...doc.data(), id: doc.id }));
+                    data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    localStorage.setItem('bk_data_v4', JSON.stringify(data));
+                    setSubmissions(data);
+                }, (error) => {
+                    console.error("Gagal memuat laporan:", error);
+                    setFirebaseStatus('error');
+                });
+
+                const materialsRef = collection(db, 'artifacts', appId, 'public', 'data', 'materials');
+                const unsubscribeMat = onSnapshot(materialsRef, (snapshot) => {
+                    const data = [];
+                    snapshot.forEach(doc => data.push({ ...doc.data(), id: doc.id }));
+                    if (data.length > 0) {
+                        data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        localStorage.setItem('bk_materi_v1', JSON.stringify(data));
+                        setMaterials(data);
+                    } else {
+                        setMaterials(defaultMaterials);
+                    }
+                }, (error) => console.error(error));
+
+                const announcementRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'announcement');
+                const unsubscribeAnn = onSnapshot(announcementRef, (docSnap) => {
+                    if (docSnap.exists() && docSnap.data().text) setAnnouncement(docSnap.data().text);
+                });
+
+                const chatsRef = collection(db, 'artifacts', appId, 'public', 'data', 'chats');
+                const unsubscribeChats = onSnapshot(chatsRef, (snapshot) => {
+                    const data = [];
+                    snapshot.forEach(doc => data.push({ ...doc.data(), id: doc.id }));
+                    data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    localStorage.setItem('bk_chats_v1', JSON.stringify(data));
+                    setChats(data);
+                }, (error) => console.error("Gagal load chat:", error));
+
+                return () => {
+                    unsubscribeSub();
+                    unsubscribeMat();
+                    unsubscribeAnn();
+                    unsubscribeChats();
+                };
+            }, [authUser]);
+
+            const handleLogin = (user) => {
+                setCurrentUser(user);
+                setStudentView('home');
+            };
+
+            const handleLogout = () => {
+                setCurrentUser(null);
+                setIsMobileMenuOpen(false);
+            };
+
+            const handleAddMaterial = async (newMaterial) => {
+                if (!db || !authUser) return alert("GAGAL: Harus terhubung ke Database Cloud.");
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'materials'), { ...newMaterial, timestamp: new Date().toISOString() });
+                    alert("Materi berhasil ditambahkan!");
+                } catch (error) { console.error(error); alert("Terjadi kesalahan."); }
+            };
+
+            const handleDeleteMaterial = async (materialId) => {
+                if (!db || !authUser) return;
+                if (window.confirm("Apakah Anda yakin ingin menghapus materi ini?")) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'materials', materialId));
+                    } catch (error) { console.error(error); }
+                }
+            };
+
+            const handleEditMaterial = async (materialId, updatedData) => {
+                if (!db || !authUser) return alert("GAGAL: Harus terhubung ke Database Cloud untuk mengedit materi.");
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'materials', materialId), { ...updatedData, timestamp: new Date().toISOString() });
+                    alert("Materi berhasil diperbarui!");
+                } catch (error) { console.error("Gagal edit materi:", error); alert("Gagal mengedit. Pastikan hak akses Firebase terbuka.");}
+            };
+
+            const handleUpdateAnnouncement = async (text) => {
+                if (!db || !authUser) return;
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'announcement'), { text });
+                    alert("Pengumuman berhasil diperbarui!");
+                } catch (error) { console.error(error); }
+            };
+
+            const handleDeleteSubmission = async (submissionId) => {
+                if (!db || !authUser) return;
+                if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'submissions', submissionId));
+                    } catch (error) {
+                        const currentLocalData = JSON.parse(localStorage.getItem('bk_data_v4') || '[]');
+                        const updated = currentLocalData.filter(sub => sub.id !== submissionId);
+                        localStorage.setItem('bk_data_v4', JSON.stringify(updated));
+                        setSubmissions(updated);
+                    }
+                }
+            };
+
+            const handleSendChat = async (chatData) => {
+                if (!db || !authUser) {
+                    alert("Mode Offline: Pesan hanya tersimpan di perangkat ini.");
+                    const newChat = { ...chatData, timestamp: new Date().toISOString(), id: Date.now().toString() };
+                    const updatedChats = [...chats, newChat];
+                    setChats(updatedChats);
+                    localStorage.setItem('bk_chats_v1', JSON.stringify(updatedChats));
+                    return;
+                }
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'chats'), { 
+                        ...chatData, timestamp: new Date().toISOString() 
+                    });
+                } catch (error) { console.error("Gagal kirim pesan:", error); alert("Gagal mengirim pesan."); }
+            };
+
+            const handleSubmit = async (newData) => {
+                const newSubmission = {
+                    name: currentUser.name, 
+                    classCode: currentUser.classCode, 
+                    nis: currentUser.nis, 
+                    timestamp: new Date().toISOString(), 
+                    ...newData
+                };
+
+                let savedToCloud = false;
+
+                if (firebaseStatus === 'connected' && db && authUser) {
+                    try {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'submissions'), newSubmission);
+                        savedToCloud = true;
+                    } catch (error) {
+                        console.error("Gagal simpan ke Cloud:", error);
+                    }
+                }
+
+                if (!savedToCloud) {
+                    const currentLocalData = JSON.parse(localStorage.getItem('bk_data_v4') || '[]');
+                    const fallbackSub = { ...newSubmission, id: Date.now().toString() };
+                    const updatedLocalData = [fallbackSub, ...currentLocalData].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    localStorage.setItem('bk_data_v4', JSON.stringify(updatedLocalData));
+                    setSubmissions(updatedLocalData); 
+                }
+            };
+
+            const navigateTo = (view) => {
+                setStudentView(view);
+                setIsMobileMenuOpen(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
+                    <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50 border-b-4 border-amber-400">
+                        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center relative">
+                            
+                            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => currentUser?.role === 'student' && navigateTo('home')}>
+                                <div className="bg-white/10 p-2 rounded border border-amber-400/30">
+                                    <Icons.Anchor className="h-6 w-6 text-amber-400" />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-bold tracking-widest uppercase text-amber-400 leading-tight flex items-center">
+                                        AM BK UM 2026 
+                                    </h1>
+                                    <p className="text-xs text-slate-300 tracking-wide hidden sm:block">SMAN Taruna Nala Jawa Timur</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center space-x-4">
+                                {firebaseStatus === 'error' && (
+                                    <span title="Database belum tersetting dengan benar (Cek Auth & Rules)" className="hidden md:flex items-center bg-red-600/20 text-red-400 text-xs px-2 py-1 rounded font-bold uppercase tracking-wider border border-red-500/50 cursor-help">
+                                        <Icons.CloudOff className="w-4 h-4 mr-1"/> Offline
+                                    </span>
+                                )}
+                                {firebaseStatus === 'connected' && (
+                                    <span title="Terhubung ke Database Cloud AMBK" className="hidden md:flex items-center bg-emerald-600/20 text-emerald-400 text-xs px-2 py-1 rounded font-bold uppercase tracking-wider border border-emerald-500/50">
+                                        <Icons.CloudCheck className="w-4 h-4 mr-1"/> Online
+                                    </span>
+                                )}
+
+                                {currentUser && currentUser.role === 'student' ? (
+                                    <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded transition border border-slate-700 text-amber-400 flex items-center">
+                                        <span className="text-xs font-bold uppercase tracking-wider mr-2 hidden sm:block">Menu Utama</span>
+                                        {isMobileMenuOpen ? <Icons.X className="h-6 w-6" /> : <Icons.Menu className="h-6 w-6" />}
+                                    </button>
+                                ) : currentUser && currentUser.role === 'teacher' ? (
+                                    <button onClick={handleLogout} className="flex items-center space-x-2 bg-red-800/80 hover:bg-red-700 px-4 py-1.5 rounded text-sm transition border border-red-600 font-medium tracking-wide uppercase text-xs">
+                                        <Icons.LogOut className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Keluar</span>
+                                    </button>
+                                ) : null}
+                            </div>
+                        </div>
+
+                        {currentUser && currentUser.role === 'student' && isMobileMenuOpen && (
+                            <div className="absolute top-full left-0 w-full bg-slate-900 border-b border-slate-800 shadow-2xl animate-fade-in z-40">
+                                <nav className="max-w-6xl mx-auto px-4 py-4 flex flex-col space-y-2">
+                                    <button onClick={() => navigateTo('home')} className={`text-left px-4 py-3 rounded uppercase text-sm font-bold tracking-widest transition ${studentView === 'home' ? 'bg-amber-500 text-slate-900' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+                                        <Icons.Layout className="inline w-5 h-5 mr-3 mb-1" /> Beranda Utama
+                                    </button>
+                                    <button onClick={() => navigateTo('assessment')} className={`text-left px-4 py-3 rounded uppercase text-sm font-bold tracking-widest transition ${studentView === 'assessment' ? 'bg-amber-500 text-slate-900' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+                                        <Icons.Activity className="inline w-5 h-5 mr-3 mb-1" /> Need Assessment
+                                    </button>
+                                    <button onClick={() => navigateTo('dcm')} className={`text-left px-4 py-3 rounded uppercase text-sm font-bold tracking-widest transition ${studentView === 'dcm' ? 'bg-amber-500 text-slate-900' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+                                        <Icons.CheckSquare className="inline w-5 h-5 mr-3 mb-1" /> Daftar Cek Masalah
+                                    </button>
+                                    <button onClick={() => navigateTo('curhat')} className={`text-left px-4 py-3 rounded uppercase text-sm font-bold tracking-widest transition ${studentView === 'curhat' ? 'bg-amber-500 text-slate-900' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+                                        <Icons.HeartHandshake className="inline w-5 h-5 mr-3 mb-1" /> Ruang Konseling
+                                    </button>
+                                    <button onClick={() => navigateTo('materi')} className={`text-left px-4 py-3 rounded uppercase text-sm font-bold tracking-widest transition ${studentView === 'materi' ? 'bg-amber-500 text-slate-900' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+                                        <Icons.BookOpen className="inline w-5 h-5 mr-3 mb-1" /> Materi BK
+                                    </button>
+                                    <div className="border-t border-slate-700 my-2"></div>
+                                    <button onClick={handleLogout} className="text-left px-4 py-3 rounded uppercase text-sm font-bold tracking-widest text-red-400 hover:bg-red-900/50 transition">
+                                        <Icons.LogOut className="inline w-5 h-5 mr-3 mb-1" /> Keluar
+                                    </button>
+                                </nav>
+                            </div>
+                        )}
+                    </header>
+
+                    <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 relative flex flex-col">
+                        {!currentUser ? (
+                            <LoginPage onLogin={handleLogin} />
+                        ) : currentUser.role === 'student' ? (
+                            <StudentPortal 
+                                user={currentUser} 
+                                onSubmit={handleSubmit} 
+                                view={studentView} 
+                                setView={navigateTo} 
+                                materials={materials}
+                                announcement={announcement}
+                                submissions={submissions}
+                                chats={chats}
+                                onSendChat={handleSendChat}
+                            />
+                        ) : (
+                            <TeacherDashboard 
+                                submissions={submissions} 
+                                materials={materials}
+                                announcement={announcement}
+                                chats={chats}
+                                onAddMaterial={handleAddMaterial}
+                                onDeleteMaterial={handleDeleteMaterial}
+                                onEditMaterial={handleEditMaterial}
+                                onUpdateAnnouncement={handleUpdateAnnouncement}
+                                onDeleteSubmission={handleDeleteSubmission}
+                                onSendChat={handleSendChat}
+                            />
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        // --- HALAMAN LOGIN ---
+        function LoginPage({ onLogin }) {
+            const [activeTab, setActiveTab] = useState('student'); 
+            const [studentName, setStudentName] = useState('');
+            const [studentNis, setStudentNis] = useState(''); 
+            const [studentClass, setStudentClass] = useState('');
+            const [teacherPass, setTeacherPass] = useState('');
+            const [error, setError] = useState('');
+
+            const handleStudentLogin = (e) => {
+                e.preventDefault();
+                if (!studentName || !studentClass || !studentNis) {
+                    setError('Mohon lengkapi Identitas Anda (Nama, Kode Rahasia dan Kelas)!');
+                    return;
+                }
+                onLogin({ role: 'student', name: studentName, classCode: studentClass, nis: studentNis });
+            };
+
+            const handleTeacherLogin = (e) => {
+                e.preventDefault();
+                if (teacherPass === '123321') onLogin({ role: 'teacher', name: 'Guru BK' });
+                else setError('Kode otorisasi salah.');
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto w-full animate-fade-in relative shadow-2xl rounded-lg overflow-hidden flex flex-col md:flex-row min-h-[500px]">
+                    <div className="md:w-1/2 relative bg-slate-900 flex flex-col justify-center items-center text-white p-10 text-center overflow-hidden">
+                        <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: "url('https://sekolah.link/wp-content/uploads/2022/06/smp-neger-30-malang-1536x877.png')", transform: "scale(1.2)", backgroundPosition: "center bottom" }}></div>
+                        <div className="absolute inset-0 bg-slate-900/60 z-10 mix-blend-multiply"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10"></div>
+                        
+                        <div className="relative z-20">
+                            <div className="bg-slate-900/40 p-4 rounded-full inline-block backdrop-blur-sm mb-6 border border-amber-400/30">
+                                <Icons.Anchor className="h-16 w-16 text-amber-400 mx-auto" />
+                            </div>
+                            <h2 className="text-3xl font-bold uppercase tracking-widest mb-2 text-amber-400 drop-shadow-lg">SMAN Taruna Nala</h2>
+                            <p className="text-sm font-light tracking-wide text-slate-200 mb-8 border-b border-amber-400/50 inline-block pb-1">Jawa Timur</p>
+                            <p className="mt-8 text-sm italic opacity-90 max-w-xs mx-auto text-slate-300">"Assessment Center & Layanan Konseling Siswa"</p>
+                        </div>
+                    </div>
+                    <div className="md:w-1/2 bg-white p-8 md:p-12 relative z-20">
+                        <div className="flex mb-8 border-b-2 border-slate-100">
+                            <button className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider ${activeTab === 'student' ? 'text-slate-900 border-b-4 border-amber-400' : 'text-slate-400'}`} onClick={() => setActiveTab('student')}>Siswa</button>
+                            <button className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider ${activeTab === 'teacher' ? 'text-slate-900 border-b-4 border-amber-400' : 'text-slate-400'}`} onClick={() => setActiveTab('teacher')}>Guru</button>
+                        </div>
+                        {error && <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-600 text-red-700 text-sm font-bold">{error}</div>}
+                        
+                        {activeTab === 'student' ? (
+                            <form onSubmit={handleStudentLogin} className="space-y-5">
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nama Lengkap</label><input type="text" className="w-full px-4 py-3 border-2 border-slate-200 rounded-md focus:border-slate-800 outline-none" placeholder="Nama Anda" value={studentName} onChange={(e) => setStudentName(e.target.value)}/></div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex items-center justify-between"><span>Kode Rahasia (Sebagai Kata Sandi)</span><Icons.Lock className="w-3 h-3 text-slate-400" /></label>
+                                    <input type="password" className="w-full px-4 py-3 border-2 border-slate-200 rounded-md focus:border-slate-800 outline-none tracking-widest" placeholder="••••••••••" value={studentNis} onChange={(e) => setStudentNis(e.target.value)}/>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Kelas / Angkatan</label>
+                                    <select className="w-full px-4 py-3 border-2 border-slate-200 rounded-md focus:border-slate-800 outline-none bg-white" value={studentClass} onChange={(e) => setStudentClass(e.target.value)}>
+                                        <option value="">Pilih Kelas...</option><option value="X1">Kelas X1</option><option value="X2">Kelas X2</option><option value="X3">Kelas X3</option><option value="X4">Kelas X4</option><option value="X5">Kelas X5</option><option value="X6">Kelas X6</option><option value="X7">Kelas X7</option><option value="X8">Kelas X8</option><option value="X9">Kelas X9</option><option value="X10">Kelas X10</option><option value="XI 1">Kelas XI 1</option><option value="XI 2">Kelas XI 2</option><option value="XI 3">Kelas XI 3</option><option value="XI 4">Kelas XI 4</option><option value="XI 5">Kelas XI 5</option><option value="XI 6">Kelas XI 6</option><option value="XI 7">Kelas XI 7</option>
+                                    </select>
+                                </div>
+                                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded uppercase tracking-widest hover:bg-slate-800 transition shadow-lg mt-2">Masuk</button>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleTeacherLogin} className="space-y-6">
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">PIN Otorisasi</label><input type="password" className="w-full px-4 py-3 border-2 border-slate-200 rounded-md focus:border-slate-800 outline-none tracking-widest" placeholder="••••••" value={teacherPass} onChange={(e) => setTeacherPass(e.target.value)}/></div>
+                                <button type="submit" className="w-full bg-amber-500 text-slate-900 font-bold py-4 rounded uppercase tracking-widest hover:bg-amber-400 transition shadow-lg">Akses Dashboard</button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- PORTAL SISWA (LANDING PAGE STYLE) ---
+        function StudentPortal({ user, onSubmit, view, setView, materials, announcement, submissions, chats, onSendChat }) {
+            const hasSubmittedAssessment = submissions.some(sub => sub.nis === user.nis && sub.type === 'assessment');
+            const hasSubmittedDcm = submissions.some(sub => sub.nis === user.nis && sub.type === 'dcm');
+            const roomId = useMemo(() => generateRoomId(user.nis), [user.nis]);
+
+            if (view === 'home') {
+                return (
+                    <div className="animate-fade-in w-full">
+                        <div className="bg-slate-900 rounded-2xl p-10 md:p-16 text-center text-white mb-12 shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+                            <Icons.Shield className="h-16 w-16 text-amber-400 mx-auto mb-6 opacity-80" />
+                            <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-wider mb-4">Selamat Datang, {user.name}</h2>
+                            <p className="text-slate-300 max-w-2xl mx-auto text-lg leading-relaxed mb-8">
+                                Layanan Bimbingan dan Konseling ini hadir untuk mendukung perkembangan pribadimu, sosial, prestasi belajar, dan perencanaan karirmu ke depan.
+                            </p>
+                            <button onClick={() => { document.getElementById('layanan').scrollIntoView({ behavior: 'smooth' }); }} className="bg-amber-500 text-slate-900 px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-amber-400 transition shadow-lg">Jelajahi Layanan</button>
+                        </div>
+
+                        <div id="layanan" className="pt-8 mb-16">
+                            <div className="text-center mb-10"><h3 className="text-2xl font-bold text-slate-900 uppercase tracking-widest mb-2">Layanan Utama</h3><div className="w-16 h-1 bg-amber-400 mx-auto"></div></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                                <div onClick={() => { if (hasSubmittedAssessment) alert("Anda sudah menyelesaikan Need Assessment."); else setView('assessment'); }} className={`bg-white p-8 rounded-xl shadow-lg border-t-8 border-blue-500 transition cursor-pointer group transform ${hasSubmittedAssessment ? 'opacity-80' : 'hover:shadow-2xl hover:-translate-y-2'} flex flex-col h-full`}>
+                                    <div className={`p-4 rounded-full transition w-max mb-6 ${hasSubmittedAssessment ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-500 group-hover:text-white'}`}><Icons.Activity className="h-8 w-8" /></div>
+                                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider mb-3">Need Assessment</h3>
+                                    <p className="text-slate-500 text-sm leading-relaxed flex-grow">Angket pemetaan kebutuhan agar Guru BK dapat menyusun materi bimbingan klasikal yang sesuai.</p>
+                                    <div className={`mt-6 flex items-center font-bold text-sm uppercase tracking-wider ${hasSubmittedAssessment ? 'text-green-600' : 'text-blue-600'}`}>{hasSubmittedAssessment ? <><Icons.CheckCircle className="w-5 h-5 mr-1" /> Selesai</> : <>Mulai <Icons.ChevronRight className="w-4 h-4 ml-1" /></>}</div>
+                                </div>
+
+                                <div onClick={() => { if (hasSubmittedDcm) alert("Anda sudah menyelesaikan Daftar Cek Masalah (DCM)."); else setView('dcm'); }} className={`bg-white p-8 rounded-xl shadow-lg border-t-8 border-amber-500 transition cursor-pointer group transform ${hasSubmittedDcm ? 'opacity-80' : 'hover:shadow-2xl hover:-translate-y-2'} flex flex-col h-full`}>
+                                    <div className={`p-4 rounded-full transition w-max mb-6 ${hasSubmittedDcm ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white'}`}><Icons.CheckSquare className="h-8 w-8" /></div>
+                                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider mb-3">Daftar Cek Masalah</h3>
+                                    <p className="text-slate-500 text-sm leading-relaxed flex-grow">Instrumen *checklist* untuk mendata masalah spesifik yang saat ini sedang Anda alami/rasakan.</p>
+                                    <div className={`mt-6 flex items-center font-bold text-sm uppercase tracking-wider ${hasSubmittedDcm ? 'text-green-600' : 'text-amber-600'}`}>{hasSubmittedDcm ? <><Icons.CheckCircle className="w-5 h-5 mr-1" /> Selesai</> : <>Mulai <Icons.ChevronRight className="w-4 h-4 ml-1" /></>}</div>
+                                </div>
+
+                                <div onClick={() => setView('curhat')} className="bg-white p-8 rounded-xl shadow-lg border-t-8 border-indigo-500 hover:shadow-2xl transition cursor-pointer group transform hover:-translate-y-2 flex flex-col h-full">
+                                    <div className="p-4 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-500 group-hover:text-white transition w-max mb-6"><Icons.HeartHandshake className="h-8 w-8" /></div>
+                                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider mb-3">Ruang Konseling</h3>
+                                    <p className="text-slate-500 text-sm leading-relaxed flex-grow">Layanan privat bagi Siswa untuk bercerita, berkonsultasi, dan membalas pesan dari Guru BK secara aman dan rahasia.</p>
+                                    <div className="mt-6 flex items-center text-indigo-600 font-bold text-sm uppercase tracking-wider">Buka Ruang <Icons.ChevronRight className="w-4 h-4 ml-1" /></div>
+                                </div>
+
+                                <div onClick={() => setView('materi')} className="bg-white p-8 rounded-xl shadow-lg border-t-8 border-emerald-500 hover:shadow-2xl transition cursor-pointer group transform hover:-translate-y-2 flex flex-col h-full">
+                                    <div className="p-4 bg-emerald-50 rounded-full text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition w-max mb-6"><Icons.BookOpen className="h-8 w-8" /></div>
+                                    <h3 className="text-xl font-bold text-slate-900 uppercase tracking-wider mb-3">Materi Bimbingan</h3>
+                                    <p className="text-slate-500 text-sm leading-relaxed flex-grow">Akses artikel dan panduan pengembangan diri khusus untuk Taruna.</p>
+                                    <div className="mt-6 flex items-center text-emerald-600 font-bold text-sm uppercase tracking-wider">Baca Materi <Icons.ChevronRight className="w-4 h-4 ml-1" /></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-200 rounded-xl p-10 text-center mb-10">
+                            <h3 className="text-xl font-bold text-slate-800 uppercase tracking-widest mb-4">Informasi Penting</h3>
+                            <p className="text-slate-600 max-w-3xl mx-auto mb-6 whitespace-pre-wrap">{announcement}</p>
+                            <p className="text-sm font-bold text-slate-500">- Tim BK SMAN Taruna Nala -</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'assessment') return <LikertAssessment user={user} onBack={() => setView('home')} onSubmit={onSubmit} />;
+            if (view === 'dcm') return <DcmAssessment user={user} onBack={() => setView('home')} onSubmit={onSubmit} />;
+            if (view === 'materi') return <MateriBK onBack={() => setView('home')} materials={materials} />;
+            if (view === 'curhat') return <CurhatDashboard user={user} roomId={roomId} chats={chats} onSendChat={onSendChat} onBack={() => setView('home')} onSubmit={onSubmit} submissions={submissions} />;
+        }
+
+        // --- RUANG KONSELING 2-IN-1 (SISWA) ---
+        function CurhatDashboard({ user, roomId, chats, onSendChat, onBack, onSubmit, submissions }) {
+            const [tab, setTab] = useState('form'); 
+            const [text, setText] = useState('');
+
+            const hasSubmittedCurhat = submissions.some(sub => sub.nis === user.nis && sub.type === 'curhat');
+
+            return (
+                <div className="max-w-3xl mx-auto w-full animate-fade-in">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        <button onClick={onBack} className="px-4 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-bold mr-2"><Icons.ChevronLeft className="w-5 h-5"/></button>
+                        <button onClick={() => setTab('form')} className={`px-5 py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all ${tab === 'form' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>
+                            <Icons.FileText className="inline w-4 h-4 mr-2 mb-0.5" /> Surat Laporan
+                        </button>
+                        <button onClick={() => setTab('chat')} className={`px-5 py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all ${tab === 'chat' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>
+                            <Icons.MessageSquare className="inline w-4 h-4 mr-2 mb-0.5" /> Chat BK
+                        </button>
+                    </div>
+
+                    {tab === 'form' ? (
+                        <div className="bg-white p-8 rounded-xl shadow-lg border-t-8 border-indigo-600">
+                            <div className="flex items-center mb-6 pb-4 border-b border-indigo-100"><Icons.FileText className="w-8 h-8 text-indigo-600 mr-3" /><h2 className="text-2xl font-bold text-slate-900 uppercase">Tulis Surat Laporan</h2></div>
+                            <div className="bg-indigo-50 p-4 rounded text-sm text-indigo-800 mb-6 italic">"Gunakan form ini jika kamu ingin menceritakan masalah secara lengkap untuk dibaca Guru BK di rekap mereka."</div>
+                            {hasSubmittedCurhat ? (
+                                <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-200">
+                                    <Icons.CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-slate-800 mb-2">Surat Sudah Terkirim</h3>
+                                    <p className="text-slate-600 mb-6">Guru BK sudah menerima laporanmu. Silakan gunakan tab <b>Chat BK</b> jika ingin berdiskusi lebih lanjut secara langsung.</p>
+                                    <button onClick={() => setTab('chat')} className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest hover:bg-indigo-700">Buka Live Chat</button>
+                                </div>
+                            ) : (
+                                <div>
+                                    <textarea className="w-full h-64 p-4 border border-slate-300 rounded focus:border-indigo-500 outline-none resize-none text-slate-700 bg-slate-50 focus:bg-white transition" placeholder="Ketik ceritamu selengkap mungkin di sini..." value={text} onChange={(e) => setText(e.target.value)}></textarea>
+                                    <div className="flex justify-end mt-6">
+                                        <button onClick={async () => { if(text.trim().length < 5) return alert("Pesan terlalu pendek."); await onSubmit({ type: 'curhat', answers: {}, scoreTotal: 0, story: text, materiDiharapkan: '', harapanSekolah: '' }); alert("Surat berhasil dikirim!"); }} className="bg-indigo-600 text-white px-8 py-3 rounded font-bold uppercase tracking-widest hover:bg-indigo-700 shadow-md">Kirim Surat</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <ChatInterface user={user} roomId={roomId} chats={chats} onSendChat={onSendChat} isTeacher={false} />
+                    )}
+                </div>
+            )
+        }
+
+        // --- KOMPONEN LIVE CHAT ---
+        function ChatInterface({ user, roomId, chats, onSendChat, onBack, isTeacher, studentName, classCode }) {
+            const [text, setText] = useState('');
+            const messagesEndRef = useRef(null);
+            const roomChats = chats.filter(c => c.roomId === roomId);
+
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [roomChats]);
+
+            const handleSend = () => {
+                if(!text.trim()) return;
+                onSendChat({ roomId: roomId, sender: isTeacher ? 'teacher' : 'student', text: text.trim(), studentName: isTeacher ? studentName : user.name, classCode: isTeacher ? classCode : user.classCode });
+                setText('');
+            };
+            const handleKeyDown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+
+            return (
+                <div className="w-full flex flex-col h-[calc(100vh-220px)] md:h-[600px] bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+                    <div className="bg-slate-50 p-4 border-b border-slate-200 flex items-center shrink-0">
+                        {isTeacher && (
+                            <button onClick={onBack} className="mr-4 p-2 bg-slate-200 hover:bg-slate-300 rounded-full transition shrink-0" title="Kembali">
+                                <Icons.ChevronLeft className="w-5 h-5 text-slate-700" />
+                            </button>
+                        )}
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-900 uppercase tracking-widest flex items-center"><Icons.MessageSquare className="w-5 h-5 text-indigo-600 mr-2" /> {isTeacher ? `Konseling: ${studentName}` : 'Live Chat Konseling'}</h2>
+                            <p className="text-xs text-slate-500 font-medium">{isTeacher ? classCode : 'Percakapan anonim & interaktif dilindungi asas kerahasiaan'}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 chat-scroll">
+                        {roomChats.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-60"><Icons.HeartHandshake className="w-16 h-16 text-indigo-300 mb-4" /><h3 className="text-lg font-bold text-indigo-900 mb-2">Mulai Obrolan</h3><p className="text-sm text-indigo-700">Ketik "Halo" untuk mulai berkonsultasi langsung dengan Guru BK.</p></div>
+                        ) : (
+                            roomChats.map((chat) => {
+                                const isMe = (isTeacher && chat.sender === 'teacher') || (!isTeacher && chat.sender === 'student');
+                                return (
+                                    <div key={chat.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                        <span className="text-[10px] text-slate-400 mb-1 font-bold uppercase tracking-wider px-1">{chat.sender === 'teacher' ? 'Guru BK' : chat.studentName}</span>
+                                        <div className={`px-5 py-3 rounded-2xl max-w-[85%] md:max-w-[70%] shadow-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}>
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{chat.text}</p>
+                                            <span className={`block text-[10px] mt-2 font-mono ${isMe ? 'text-indigo-200 text-right' : 'text-slate-400 text-left'}`}>{new Date(chat.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {!isTeacher && (
+                        <div className="bg-emerald-50 px-4 py-3 border-t border-emerald-100 shrink-0">
+                            <p className="text-[11px] font-bold text-emerald-800 uppercase mb-2 flex items-center"><Icons.Activity className="w-3 h-3 mr-1" /> Butuh respons cepat? Chat via WhatsApp:</p>
+                            <div className="flex flex-wrap gap-2">
+                                <a href="https://wa.me/6289515413434" target="_blank" className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase rounded flex items-center transition">Pak Hakam</a>
+                                <a href="https://wa.me/625785246598" target="_blank" className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase rounded flex items-center transition">Miss Thalia</a>
+                                <a href="https://wa.me/6281259063657" target="_blank" className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase rounded flex items-center transition">Miss Iis</a>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+                        <div className="flex gap-3">
+                            <textarea className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-3 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors resize-none text-sm" placeholder="Ketik pesan balasan..." rows="2" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown}></textarea>
+                            <button onClick={handleSend} className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-xl shadow-md transition-transform hover:-translate-y-0.5 flex items-center justify-center h-max self-end"><Icons.Send className="w-5 h-5" /></button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- MATERI BK ---
+        function MateriBK({ onBack, materials }) {
+            const [activeAuthorTab, setActiveAuthorTab] = useState('Pak Hakam');
+            const filteredMaterials = materials.filter(m => m.author === activeAuthorTab);
+
+            return (
+                <div className="max-w-4xl mx-auto animate-fade-in pb-12">
+                    <div className="flex items-center mb-8 border-b-2 border-slate-200 pb-4">
+                        <button onClick={onBack} className="mr-4 p-2 bg-slate-200 hover:bg-slate-300 rounded-full transition"><Icons.ChevronLeft className="w-6 h-6 text-slate-700" /></button>
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-900 uppercase tracking-widest">Materi Bimbingan</h2>
+                            <p className="text-slate-500">Artikel & Panduan Pengembangan Diri Taruna</p>
+                        </div>
+                    </div>
+
+                    <div className="flex overflow-x-auto border-b border-slate-200 mb-8 scrollbar-hide">
+                        <button onClick={() => setActiveAuthorTab('Pak Hakam')} className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-colors whitespace-nowrap ${activeAuthorTab === 'Pak Hakam' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}>Pak Hakam</button>
+                        <button onClick={() => setActiveAuthorTab('Miss Thalia')} className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-colors whitespace-nowrap ${activeAuthorTab === 'Miss Thalia' ? 'text-emerald-600 border-b-4 border-emerald-600' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}>Miss Thalia</button>
+                        <button onClick={() => setActiveAuthorTab('Miss Iis')} className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-colors whitespace-nowrap ${activeAuthorTab === 'Miss Iis' ? 'text-amber-600 border-b-4 border-amber-600' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}>Miss Iis</button>
+                    </div>
+
+                    {filteredMaterials.length === 0 ? (
+                        <div className="text-center p-12 bg-white rounded-xl shadow border border-slate-100">
+                            <Icons.BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                            <p className="text-slate-500">Belum ada materi yang ditambahkan oleh {activeAuthorTab}.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-10">
+                            {filteredMaterials.map((materi) => {
+                                let badgeColor = "bg-slate-50 text-slate-600";
+                                if(materi.domain.toLowerCase() === 'belajar') badgeColor = "bg-blue-50 text-blue-600";
+                                if(materi.domain.toLowerCase() === 'sosial') badgeColor = "bg-emerald-50 text-emerald-600";
+                                if(materi.domain.toLowerCase() === 'karir') badgeColor = "bg-amber-50 text-amber-600";
+                                if(materi.domain.toLowerCase() === 'pribadi') badgeColor = "bg-rose-50 text-rose-600";
+
+                                return (
+                                    <div key={materi.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-100 flex flex-col md:flex-row group">
+                                        <div className="md:w-1/3 bg-slate-200 relative overflow-hidden flex items-center justify-center min-h-[200px]">
+                                            {materi.imageUrl ? (
+                                                <img src={materi.imageUrl} alt={materi.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                                            ) : (
+                                                <Icons.Image className="w-16 h-16 text-slate-400" />
+                                            )}
+                                        </div>
+                                        <div className="p-8 md:w-2/3 flex flex-col">
+                                            <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider mb-3 inline-block w-max border ${badgeColor.replace('bg-', 'border-').replace('50', '200')}`}>Bidang {materi.domain}</span>
+                                            <h3 className="text-2xl font-bold text-slate-900 mb-3">{materi.title}</h3>
+                                            <p className="text-slate-600 mb-4 leading-relaxed text-sm text-justify whitespace-pre-wrap flex-grow">{materi.content}</p>
+                                            {materi.materialUrl && (
+                                                <a href={materi.materialUrl} target="_blank" rel="noopener noreferrer" className={`font-bold text-sm uppercase tracking-wider flex items-center transition ${badgeColor.split(' ')[1].replace('600', '700')} hover:opacity-70 mt-2`}>
+                                                    Baca Selengkapnya <Icons.ChevronRight className="w-4 h-4 ml-1" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function DcmAssessment({ user, onBack, onSubmit }) {
+            const [checkedItems, setCheckedItems] = useState([]);
+            const [step, setStep] = useState(0);
+            const domains = ['kesehatan', 'keluarga', 'keadaan kehidupan ekonomi'];
+            const domainTitles = {
+                kesehatan: { title: '1. Keadaan Kesehatan', desc: 'Pilih gejala fisik/kesehatan yang mengganggu Anda' },
+                keluarga: { title: '2. Keadaan Keluarga', desc: 'Pilih kondisi keluarga yang sedang membebani pikiran' },
+                "keadaan kehidupan ekonomi": { title: '3. Keadaan Kehidupan Ekonomi', desc: 'Pilih masalah emosional atau pergaulan yang dialami' }
+            };
+            const toggleCheck = (id) => {
+                if (checkedItems.includes(id)) setCheckedItems(checkedItems.filter(item => item !== id));
+                else setCheckedItems([...checkedItems, id]);
+            };
+            const progressPercentage = (step / domains.length) * 100;
+
+            if (step === 0) return (
+                <div className="max-w-3xl mx-auto animate-fade-in glass-panel p-8 rounded-2xl shadow-xl border-t-8 border-amber-500">
+                    <div className="flex items-center mb-6 border-b pb-4 border-slate-100">
+                        <div className="p-3 bg-amber-100 rounded-full mr-4"><Icons.CheckSquare className="w-8 h-8 text-amber-600" /></div>
+                        <div><h2 className="text-3xl font-bold text-slate-900 uppercase tracking-tight">Daftar Cek Masalah (DCM)</h2><p className="text-slate-500 font-medium mt-1">Identifikasi Masalah Siswa</p></div>
+                    </div>
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 mb-8 shadow-sm">
+                        <h4 className="font-bold text-amber-800 uppercase tracking-wider mb-2 flex items-center"><Icons.Activity className="w-5 h-5 mr-2" /> Instruksi</h4>
+                        <p className="text-amber-900">Centang (pilih) setiap pernyataan yang menggambarkan keadaan yang <b>sedang Anda alami saat ini</b>.</p>
+                    </div>
+                    <div className="flex justify-between items-center mt-10">
+                        <button onClick={onBack} className="text-slate-500 font-bold uppercase hover:text-slate-900 transition flex items-center"><Icons.ChevronLeft className="w-5 h-5 mr-1" /> Kembali</button>
+                        <button onClick={() => setStep(1)} className="bg-amber-500 text-slate-900 px-8 py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-amber-400 hover:-translate-y-1 transform transition shadow-lg flex items-center">Mulai <Icons.ChevronRight className="w-5 h-5 ml-2" /></button>
+                    </div>
+                </div>
+            );
+
+            if (step >= 1 && step <= domains.length) {
+                const domainKey = domains[step - 1]; const info = domainTitles[domainKey]; const qs = dcmQuestions[domainKey]; const isLastDomain = step === domains.length;
+                return (
+                    <div className="max-w-4xl mx-auto animate-fade-in relative">
+                        <div className="sticky top-[72px] z-30 bg-slate-50/90 backdrop-blur pb-4 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+                            <div className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-2"><span>Progres Pengisian</span><span className="text-amber-600">{Math.round(progressPercentage)}%</span></div>
+                            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden shadow-inner"><div className="bg-gradient-to-r from-amber-400 to-orange-500 h-2.5 rounded-full transition-all duration-700 ease-out" style={{ width: `${progressPercentage}%` }}></div></div>
+                        </div>
+                        <div className="mb-8 mt-6 flex flex-col sm:flex-row sm:items-center justify-between glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-amber-500">
+                            <div><span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-full uppercase tracking-wider mb-2">Bagian {step} dari {domains.length}</span><h2 className="text-2xl font-bold uppercase text-slate-900">{info.title}</h2></div>
+                        </div>
+                        <div className="space-y-4 mb-10">
+                            {qs.map((q, index) => {
+                                const isChecked = checkedItems.includes(q.id);
+                                return (
+                                    <div key={q.id} onClick={() => toggleCheck(q.id)} className={`animate-slide-up flex items-center p-5 cursor-pointer transition-all duration-300 rounded-xl border-2 ${isChecked ? 'bg-amber-50 border-amber-500 shadow-md transform scale-[1.02]' : 'bg-white border-transparent shadow-sm hover:border-amber-200 hover:shadow-md hover:-translate-y-1'}`} style={{ animationDelay: `${index * 70}ms` }}>
+                                        <div className={`flex-shrink-0 w-7 h-7 border-2 rounded-lg flex items-center justify-center mr-5 transition-all duration-300 ${isChecked ? 'bg-amber-500 border-amber-500 scale-110' : 'border-slate-300 bg-slate-50'}`}>{isChecked && <Icons.CheckSquare className="w-5 h-5 text-white" />}</div>
+                                        <p className={`text-lg transition-colors duration-300 ${isChecked ? 'text-slate-900 font-semibold' : 'text-slate-700'}`}>{q.text}</p>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className="flex justify-between items-center glass-panel p-4 rounded-2xl shadow-sm sticky bottom-4">
+                            <button onClick={() => setStep(step - 1)} className="px-6 py-3 bg-white text-slate-600 font-bold rounded-xl shadow-sm hover:bg-slate-50 uppercase text-sm flex items-center transition"><Icons.ChevronLeft className="w-5 h-5 mr-1"/> Kembali</button>
+                            <button onClick={async () => { if (isLastDomain) { await onSubmit({ type: 'dcm', answers: checkedItems, scoreTotal: checkedItems.length, story: '' }); setStep(domains.length + 1); } else { setStep(step + 1); } }} className={`px-8 py-3 ${isLastDomain ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transition uppercase flex items-center text-sm`}>
+                                {isLastDomain ? 'Kirim Hasil DCM' : 'Lanjut Bagian'} <Icons.ChevronRight className="w-5 h-5 ml-1"/>
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+            if (step === domains.length + 1) return (
+                <div className="max-w-xl mx-auto animate-fade-in glass-panel p-10 rounded-2xl shadow-2xl text-center border-t-8 border-green-500 mt-10">
+                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner"><Icons.CheckSquare className="w-12 h-12 text-green-600" /></div>
+                    <h2 className="text-3xl font-bold text-slate-900 uppercase mb-3">DCM Selesai!</h2>
+                    <button onClick={onBack} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-5 rounded-xl font-bold text-lg uppercase tracking-widest hover:from-green-600 hover:to-emerald-700 transition shadow-xl hover:-translate-y-1">Kembali ke Menu Utama</button>
+                </div>
+            );
+        }
+
+        function LikertAssessment({ user, onBack, onSubmit }) {
+            const [answers, setAnswers] = useState({});
+            const [materiDiharapkan, setMateriDiharapkan] = useState('');
+            const [harapanSekolah, setHarapanSekolah] = useState('');
+            const [step, setStep] = useState(0);
+
+            const domains = ['pribadi', 'sosial', 'belajar', 'karir'];
+            const domainTitles = { pribadi: { title: 'BIDANG PRIBADI', icon: Icons.User, color: 'text-rose-600', bg: 'bg-rose-500' }, sosial: { title: 'BIDANG SOSIAL', icon: Icons.Users, color: 'text-emerald-600', bg: 'bg-emerald-500' }, belajar: { title: 'BIDANG BELAJAR', icon: Icons.BookOpen, color: 'text-blue-600', bg: 'bg-blue-500' }, karir: { title: 'BIDANG KARIR', icon: Icons.Briefcase, color: 'text-amber-600', bg: 'bg-amber-500' } };
+            const handleAnswer = (qId, value) => setAnswers(prev => ({ ...prev, [qId]: value }));
+            const isStepComplete = () => { if (step === 0 || step === 5 || step === 6) return true; return akpdQuestions[domains[step - 1]].every(q => answers[q.id] !== undefined); };
+            const progressPercentage = (step / 5) * 100;
+
+            if (step === 0) return (
+                <div className="max-w-3xl mx-auto animate-fade-in glass-panel p-8 rounded-2xl shadow-xl border-t-8 border-blue-500">
+                    <div className="flex items-center mb-6 border-b pb-4 border-slate-100"><div className="p-3 bg-blue-100 rounded-full mr-4"><Icons.Activity className="w-8 h-8 text-blue-600" /></div><div><h2 className="text-3xl font-bold text-slate-900 uppercase tracking-tight">Need Assessment</h2></div></div>
+                    <div className="flex justify-between items-center mt-10"><button onClick={onBack} className="text-slate-500 font-bold uppercase hover:text-slate-900 transition flex items-center"><Icons.ChevronLeft className="w-5 h-5 mr-1" /> Kembali</button><button onClick={() => setStep(1)} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-blue-700 hover:-translate-y-1 transform transition shadow-lg flex items-center">Mulai Asesmen <Icons.ChevronRight className="w-5 h-5 ml-2" /></button></div>
+                </div>
+            );
+
+            if (step >= 1 && step <= 4) {
+                const info = domainTitles[domains[step - 1]]; const qs = akpdQuestions[domains[step - 1]]; const Icon = info.icon;
+                return (
+                    <div className="max-w-4xl mx-auto animate-fade-in relative">
+                        <div className="sticky top-[72px] z-30 bg-slate-50/90 backdrop-blur pb-4 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0"><div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden"><div className="bg-gradient-to-r from-blue-400 to-indigo-500 h-2.5 rounded-full transition-all duration-700" style={{ width: `${progressPercentage}%` }}></div></div></div>
+                        <div className={`mb-8 mt-6 flex items-center glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-${info.color.split('-')[1]}-500`}><Icon className={`w-7 h-7 mr-4 ${info.color}`} /><h2 className={`text-2xl font-bold uppercase ${info.color}`}>{info.title}</h2></div>
+                        <div className="space-y-6 mb-10">
+                            {qs.map((q, index) => (
+                                <div key={q.id} className="animate-slide-up glass-panel p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100" style={{ animationDelay: `${index * 80}ms` }}>
+                                    <p className="text-slate-800 font-semibold mb-6 text-lg sm:text-xl">{q.text}</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                                        {[1, 2, 3, 4].map((val) => {
+                                            const isSelected = answers[q.id] === val;
+                                            let bgClass = val === 1 ? (isSelected ? 'bg-red-600 text-white shadow-md border-red-600' : 'bg-white text-slate-600 border-slate-200') : val === 2 ? (isSelected ? 'bg-orange-500 text-white shadow-md border-orange-500' : 'bg-white text-slate-600 border-slate-200') : val === 3 ? (isSelected ? 'bg-green-500 text-white shadow-md border-green-500' : 'bg-white text-slate-600 border-slate-200') : (isSelected ? 'bg-emerald-600 text-white shadow-md border-emerald-600' : 'bg-white text-slate-600 border-slate-200');
+                                            return (<button key={val} onClick={() => handleAnswer(q.id, val)} className={`py-4 px-2 rounded-xl text-sm font-bold transition-all border-2 ${bgClass} ${isSelected ? 'transform scale-105' : ''}`}>Skor {val}</button>);
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-between items-center glass-panel p-4 rounded-2xl shadow-sm sticky bottom-4">
+                            <button onClick={() => setStep(step - 1)} className="px-6 py-3 bg-white text-slate-600 font-bold rounded-xl shadow-sm uppercase text-sm flex items-center transition"><Icons.ChevronLeft className="w-5 h-5 mr-1"/> Kembali</button>
+                            <button onClick={() => { if (isStepComplete()) setStep(step + 1); else alert("Mohon isi semua pernyataan."); }} className={`px-8 py-3 font-bold rounded-xl shadow uppercase flex items-center text-sm ${isStepComplete() ? 'bg-blue-600 text-white hover:-translate-y-1' : 'bg-slate-200 text-slate-400'}`}>Lanjut <Icons.ChevronRight className="w-5 h-5 ml-1"/></button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (step === 5) return (
+                <div className="max-w-4xl mx-auto animate-fade-in relative">
+                    <div className="glass-panel p-8 sm:p-10 rounded-2xl shadow-xl border-t-8 border-slate-900 mt-6">
+                        <h2 className="text-2xl font-bold uppercase text-slate-900 tracking-tight mb-8">Pertanyaan Terbuka</h2>
+                        <div className="space-y-8">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider">Materi / Hal apa yang ingin Anda dapatkan?</label>
+                                <textarea className="w-full p-5 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none resize-none bg-slate-50 text-lg shadow-sm" rows="3" value={materiDiharapkan} onChange={(e) => setMateriDiharapkan(e.target.value)}></textarea>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider">Apa harapan Anda selama bersekolah?</label>
+                                <textarea className="w-full p-5 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none resize-none bg-slate-50 text-lg shadow-sm" rows="3" value={harapanSekolah} onChange={(e) => setHarapanSekolah(e.target.value)}></textarea>
+                            </div>
+                        </div>
+                        <div className="mt-12 flex justify-between items-center border-t border-slate-100 pt-6">
+                            <button onClick={() => setStep(4)} className="px-6 py-3 bg-white text-slate-600 font-bold rounded-xl shadow border border-slate-200 uppercase text-sm flex items-center transition"><Icons.ChevronLeft className="inline w-4 h-4 mr-1"/> Kembali</button>
+                            <button onClick={async () => { const scoreTotal = Object.values(answers).reduce((a, b) => a + b, 0); await onSubmit({ type: 'assessment', answers, scoreTotal, story: '', materiDiharapkan, harapanSekolah }); setStep(6); }} className="px-8 py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 hover:-translate-y-1 transform transition uppercase flex items-center text-sm">
+                                Kirim Data Sekarang <Icons.CheckCircle className="inline w-4 h-4 ml-2"/>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if (step === 6) return (
+                <div className="max-w-xl mx-auto animate-fade-in glass-panel p-10 rounded-2xl shadow-2xl text-center border-t-8 border-green-500 mt-10">
+                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.CheckCircle className="w-12 h-12 text-green-600" /></div>
+                    <h2 className="text-3xl font-bold text-slate-900 uppercase mb-3 tracking-tight">Asesmen Selesai!</h2>
+                    <button onClick={onBack} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-xl font-bold text-lg uppercase tracking-widest hover:from-blue-700 hover:to-indigo-700 transition shadow-xl hover:-translate-y-1">Kembali ke Menu Utama</button>
+                </div>
+            );
+        }
+
+        // --- DASHBOARD GURU ---
+        function TeacherDashboard({ submissions, materials, announcement, chats, onAddMaterial, onDeleteMaterial, onEditMaterial, onUpdateAnnouncement, onDeleteSubmission, onSendChat }) {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedSub, setSelectedSub] = useState(null);
+            const [activeMainTab, setActiveMainTab] = useState('rekap'); 
+            const [activeTableTab, setActiveTableTab] = useState('assessment');
+            const [activeStatsTab, setActiveStatsTab] = useState('low'); 
+            const [selectedChatRoomId, setSelectedChatRoomId] = useState(null);
+
+            const [editingId, setEditingId] = useState(null);
+            const [newMatTitle, setNewMatTitle] = useState('');
+            const [newMatDomain, setNewMatDomain] = useState('Pribadi');
+            const [newMatAuthor, setNewMatAuthor] = useState('Pak Hakam'); 
+            const [newMatContent, setNewMatContent] = useState('');
+            const [newMatImg, setNewMatImg] = useState(''); 
+            const [newMatUrl, setNewMatUrl] = useState(''); 
+            const [announcementText, setAnnouncementText] = useState(announcement || '');
+            const imageInputRef = useRef(null);
+
+            useEffect(() => { setAnnouncementText(announcement); }, [announcement]);
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 500 * 1024) {
+                    alert("Ukuran gambar terlalu besar! Maksimal 500 KB.");
+                    e.target.value = ""; return;
+                }
+                const reader = new FileReader();
+                reader.onloadend = () => setNewMatImg(reader.result);
+                reader.readAsDataURL(file);
+            };
+
+            const handleSubmitMateri = (e) => {
+                e.preventDefault();
+                if(!newMatTitle || !newMatContent) return alert("Judul dan Isi Materi wajib diisi!");
+                const matData = { title: newMatTitle, domain: newMatDomain, author: newMatAuthor, content: newMatContent, imageUrl: newMatImg || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800', materialUrl: newMatUrl };
+                if (editingId) { onEditMaterial(editingId, matData); setEditingId(null); } 
+                else { onAddMaterial(matData); }
+                setNewMatTitle(''); setNewMatContent(''); setNewMatImg(''); setNewMatUrl('');
+                if(imageInputRef.current) imageInputRef.current.value = "";
+            };
+
+            const handleEditClick = (mat) => {
+                setEditingId(mat.id); setNewMatTitle(mat.title); setNewMatDomain(mat.domain); setNewMatAuthor(mat.author || 'Pak Hakam'); setNewMatContent(mat.content); setNewMatImg(mat.imageUrl || ''); setNewMatUrl(mat.materialUrl || '');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const handleCancelEdit = () => {
+                setEditingId(null); setNewMatTitle(''); setNewMatContent(''); setNewMatImg(''); setNewMatUrl('');
+                if(imageInputRef.current) imageInputRef.current.value = "";
+            };
+
+            const stats = useMemo(() => {
+                const scores = { Pribadi: 0, Sosial: 0, Belajar: 0, Karir: 0 };
+                let assessmentCount = 0; let dcmCount = 0;
+                const akpdLowCounts = {}; const akpdHighCounts = {}; const dcmItemCounts = {};
+
+                submissions.forEach(sub => {
+                    if (sub.type === 'assessment') {
+                        assessmentCount++;
+                        Object.entries(sub.answers).forEach(([key, val]) => {
+                            if (key.startsWith('P')) scores.Pribadi += val;
+                            if (key.startsWith('S')) scores.Sosial += val;
+                            if (key.startsWith('B')) scores.Belajar += val;
+                            if (key.startsWith('K')) scores.Karir += val;
+
+                            if (val <= 2) akpdLowCounts[key] = (akpdLowCounts[key] || 0) + 1;
+                            else if (val >= 3) akpdHighCounts[key] = (akpdHighCounts[key] || 0) + 1;
+                        });
+                    } else if (sub.type === 'dcm') {
+                        dcmCount++;
+                        if (Array.isArray(sub.answers)) {
+                            sub.answers.forEach(key => { dcmItemCounts[key] = (dcmItemCounts[key] || 0) + 1; });
+                        }
+                    }
+                });
+
+                const getTop3 = (countsMap, prefix, qDictionary, totalCount) => {
+                    return Object.entries(countsMap).filter(([key]) => key.startsWith(prefix)).sort((a, b) => b[1] - a[1]).slice(0, 3)
+                        .map(([key, count]) => ({ id: key, text: Object.values(qDictionary).flat().find(q => q.id === key)?.text || key, count, percentage: totalCount > 0 ? Math.round((count / totalCount) * 100) : 0 }));
+                };
+
+                return { 
+                    scores, assessmentCount, dcmCount, 
+                    topAkpdLow: { pribadi: getTop3(akpdLowCounts, 'P', akpdQuestions, assessmentCount), sosial: getTop3(akpdLowCounts, 'S', akpdQuestions, assessmentCount), belajar: getTop3(akpdLowCounts, 'B', akpdQuestions, assessmentCount), karir: getTop3(akpdLowCounts, 'K', akpdQuestions, assessmentCount) }, 
+                    topAkpdHigh: { pribadi: getTop3(akpdHighCounts, 'P', akpdQuestions, assessmentCount), sosial: getTop3(akpdHighCounts, 'S', akpdQuestions, assessmentCount), belajar: getTop3(akpdHighCounts, 'B', akpdQuestions, assessmentCount), karir: getTop3(akpdHighCounts, 'K', akpdQuestions, assessmentCount) }, 
+                    topDcm: { kesehatan: getTop3(dcmItemCounts, 'DCM_K', dcmQuestions, dcmCount), keluarga: getTop3(dcmItemCounts, 'DCM_F', dcmQuestions, dcmCount), "keadaan kehidupan ekonomi": getTop3(dcmItemCounts, 'DCM_kke', dcmQuestions, dcmCount) }
+                };
+            }, [submissions]);
+
+            const chatRooms = useMemo(() => {
+                const rooms = {};
+                chats.forEach(chat => {
+                    if (!rooms[chat.roomId]) {
+                        rooms[chat.roomId] = { roomId: chat.roomId, studentName: chat.studentName, classCode: chat.classCode, lastMessage: chat, messages: [] };
+                    }
+                    rooms[chat.roomId].messages.push(chat);
+                    if (new Date(chat.timestamp) > new Date(rooms[chat.roomId].lastMessage.timestamp)) rooms[chat.roomId].lastMessage = chat;
+                });
+                return Object.values(rooms).sort((a, b) => new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp));
+            }, [chats]);
+
+            const chartGradient = useMemo(() => {
+                const total = Object.values(stats.scores).reduce((a, b) => a + b, 0) || 1;
+                const p = (stats.scores.Pribadi / total) * 100; const s = (stats.scores.Sosial / total) * 100; const b = (stats.scores.Belajar / total) * 100;
+                return `conic-gradient(#f43f5e 0% ${p}%, #10b981 ${p}% ${p + s}%, #3b82f6 ${p + s}% ${p + s + b}%, #f59e0b ${p + s + b}% 100%)`;
+            }, [stats]);
+
+            const filtered = submissions.filter(sub => {
+                const matchTab = sub.type === activeTableTab;
+                const matchSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase()) || sub.classCode.toLowerCase().includes(searchTerm.toLowerCase());
+                return matchTab && matchSearch;
+            });
+
+            const getDcmText = (id) => Object.values(dcmQuestions).flat().find(q => q.id === id)?.text || id;
+
+            const handleDownloadCSV = () => {
+                let headers = []; let rowsData = [];
+                const escapeCSV = (str) => { if (!str) return '""'; return `"${str.toString().replace(/"/g, '""')}"`; };
+
+                if (activeTableTab === 'assessment') {
+                    headers = [ "Waktu Kirim", "Nama Taruna", "Kelas", "Jenis Instrumen", "Total Skor", "Materi Diharapkan", "Harapan Sekolah", "P1", "P2", "P3", "P4", "P5", "S1", "S2", "S3", "S4", "S5", "B1", "B2", "B3", "B4", "B5", "K1", "K2", "K3", "K4", "K5" ];
+                    const targetSubs = submissions.filter(s => s.type === 'assessment');
+                    rowsData = targetSubs.map(sub => {
+                        const date = new Date(sub.timestamp).toLocaleString('id-ID');
+                        return [ escapeCSV(date), escapeCSV(sub.name), escapeCSV(sub.classCode), escapeCSV("Need Assessment"), sub.scoreTotal || 0, escapeCSV(sub.materiDiharapkan), escapeCSV(sub.harapanSekolah), sub.answers?.P1 || '', sub.answers?.P2 || '', sub.answers?.P3 || '', sub.answers?.P4 || '', sub.answers?.P5 || '', sub.answers?.S1 || '', sub.answers?.S2 || '', sub.answers?.S3 || '', sub.answers?.S4 || '', sub.answers?.S5 || '', sub.answers?.B1 || '', sub.answers?.B2 || '', sub.answers?.B3 || '', sub.answers?.B4 || '', sub.answers?.B5 || '', sub.answers?.K1 || '', sub.answers?.K2 || '', sub.answers?.K3 || '', sub.answers?.K4 || '', sub.answers?.K5 || '' ].join(",");
+                    });
+                } 
+                else if (activeTableTab === 'dcm') {
+                    headers = [ "Waktu Kirim", "Nama Taruna", "Kelas", "Jenis Instrumen", "Jumlah Masalah", "Rincian Masalah yang Dialami (Teks Otomatis)" ];
+                    const targetSubs = submissions.filter(s => s.type === 'dcm');
+                    rowsData = targetSubs.map(sub => {
+                        const date = new Date(sub.timestamp).toLocaleString('id-ID');
+                        const masalahText = Array.isArray(sub.answers) ? sub.answers.map(id => getDcmText(id)).join(" | ") : "";
+                        return [ escapeCSV(date), escapeCSV(sub.name), escapeCSV(sub.classCode), escapeCSV("DCM"), sub.scoreTotal || 0, escapeCSV(masalahText) ].join(",");
+                    });
+                }
+                else if (activeTableTab === 'curhat') {
+                    headers = [ "Waktu Kirim", "Nama Taruna", "Kelas", "Jenis Instrumen", "Isi Laporan / Surat Curhat" ];
+                    const targetSubs = submissions.filter(s => s.type === 'curhat');
+                    rowsData = targetSubs.map(sub => {
+                        const date = new Date(sub.timestamp).toLocaleString('id-ID');
+                        return [ escapeCSV(date), escapeCSV(sub.name), escapeCSV(sub.classCode), escapeCSV("Surat Curhat"), escapeCSV(sub.story) ].join(",");
+                    });
+                }
+
+                if (rowsData.length === 0) return alert("Belum ada data untuk diunduh pada tab ini.");
+                const BOM = "\uFEFF";
+                const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(BOM + headers.join(",") + "\n" + rowsData.join("\n"));
+                const link = document.createElement("a");
+                link.setAttribute("href", csvContent);
+                link.setAttribute("download", `Rekap_Data_${activeTableTab.toUpperCase()}_Taruna_Nala.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            const renderTop3List = (title, items, colorClass) => {
+                return (
+                    <div className="bg-slate-50 p-4 rounded border border-slate-100 flex flex-col">
+                        <h4 className={`font-bold text-sm uppercase mb-3 ${colorClass}`}>{title}</h4>
+                        {items.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic">Belum ada data menonjol.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {items.map((item) => {
+                                    return (
+                                        <div key={item.id} className="text-sm">
+                                            <div className="flex justify-between items-start mb-1 gap-2">
+                                                <span className="text-slate-700 font-medium text-xs line-clamp-2"><span className="font-bold mr-1">{item.id}.</span>{item.text}</span>
+                                                <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded shadow-sm text-xs border border-slate-200 shrink-0">{item.percentage}%</span>
+                                            </div>
+                                            <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                                <div className="bg-slate-500 h-1.5 rounded-full transition-all duration-1000 ease-out" style={{ width: `${item.percentage}%`, backgroundColor: 'currentColor' }}></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            if (activeMainTab === 'materi') {
+                return ( 
+                    <div className="space-y-8 animate-fade-in w-full">
+                        <div className="flex overflow-x-auto border-b-2 border-slate-200 pb-1 mb-8 gap-2 scrollbar-hide">
+                            <button onClick={() => setActiveMainTab('rekap')} className="px-4 py-2 font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 transition whitespace-nowrap">Rekap Asesmen</button>
+                            <button onClick={() => setActiveMainTab('chat')} className="px-4 py-2 font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 transition whitespace-nowrap">Konseling Interaktif</button>
+                            <button className="px-4 py-2 font-bold uppercase tracking-wider text-slate-900 border-b-4 border-amber-500 -mb-[3px] whitespace-nowrap">Manajemen Materi BK</button>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-1 space-y-6">
+                                <div className="bg-white p-6 rounded-xl shadow border-t-4 border-emerald-500 h-max">
+                                    <div className="flex items-center mb-6 border-b pb-3"><Icons.PlusCircle className="w-6 h-6 text-emerald-500 mr-2" /><h3 className="font-bold uppercase text-slate-800">{editingId ? 'Edit Materi' : 'Tambah Materi Baru'}</h3></div>
+                                    <form onSubmit={handleSubmitMateri} className="space-y-4">
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Judul Materi</label><input type="text" className="w-full p-2 border rounded focus:border-emerald-500 outline-none text-sm bg-slate-50" value={newMatTitle} onChange={e => setNewMatTitle(e.target.value)} required /></div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Bidang Layanan</label>
+                                                <select className="w-full p-2 border rounded focus:border-emerald-500 outline-none text-sm bg-slate-50" value={newMatDomain} onChange={e => setNewMatDomain(e.target.value)}>
+                                                    <option value="Pribadi">Pribadi</option><option value="Sosial">Sosial</option><option value="Belajar">Belajar</option><option value="Karir">Karir</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Guru Pengunggah</label>
+                                                <select className="w-full p-2 border rounded focus:border-emerald-500 outline-none text-sm bg-slate-50" value={newMatAuthor} onChange={e => setNewMatAuthor(e.target.value)}>
+                                                    <option value="Pak Hakam">Pak Hakam</option><option value="Miss Thalia">Miss Thalia</option><option value="Miss Iis">Miss Iis</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Isi Singkat</label><textarea className="w-full p-2 border rounded focus:border-emerald-500 outline-none text-sm bg-slate-50 h-24" value={newMatContent} onChange={e => setNewMatContent(e.target.value)} required></textarea></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Link Eksternal Materi</label><input type="url" className="w-full p-2 border rounded focus:border-emerald-500 outline-none text-sm bg-slate-50" value={newMatUrl} onChange={e => setNewMatUrl(e.target.value)} /></div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center">
+                                                <Icons.Image className="w-4 h-4 mr-1" /> Gambar Cover (Maks 500KB)
+                                            </label>
+                                            <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageUpload} className="w-full p-2 border rounded focus:border-emerald-500 outline-none text-sm bg-slate-50 file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                                            {newMatImg && <img src={newMatImg} alt="Preview" className="mt-2 h-16 rounded object-cover border border-slate-200" />}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {editingId && <button type="button" onClick={handleCancelEdit} className="w-1/3 bg-slate-200 text-slate-700 font-bold py-3 rounded hover:bg-slate-300 transition uppercase tracking-wider text-xs shadow">Batal</button>}
+                                            <button type="submit" className={`${editingId ? 'w-2/3' : 'w-full'} bg-emerald-600 text-white font-bold py-3 rounded hover:bg-emerald-700 transition uppercase tracking-wider text-xs shadow`}>{editingId ? 'Update Materi' : 'Publish Materi'}</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div className="bg-white p-6 rounded-xl shadow border-t-4 border-blue-500 h-max">
+                                    <div className="flex items-center mb-6 border-b pb-3"><Icons.Layout className="w-6 h-6 text-blue-500 mr-2" /><h3 className="font-bold uppercase text-slate-800">Edit Pengumuman</h3></div>
+                                    <div className="space-y-4">
+                                        <textarea className="w-full p-2 border rounded focus:border-blue-500 outline-none text-sm bg-slate-50 h-24" value={announcementText} onChange={e => setAnnouncementText(e.target.value)}></textarea>
+                                        <button onClick={() => onUpdateAnnouncement(announcementText)} className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition uppercase tracking-wider text-xs shadow">Simpan</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow border border-slate-200">
+                                <h3 className="font-bold uppercase text-slate-800 mb-6 border-b pb-3">Daftar Materi Tayang</h3>
+                                <div className="space-y-4 max-h-[700px] overflow-y-auto pr-2">
+                                    {materials.length === 0 ? (
+                                        <p className="text-center text-slate-400 py-8 italic">Belum ada materi.</p>
+                                    ) : (
+                                        materials.map(mat => {
+                                            return (
+                                                <div key={mat.id} className="flex gap-4 p-4 border border-slate-100 bg-slate-50 rounded-lg group hover:bg-white hover:shadow transition">
+                                                    <div className="w-24 h-24 shrink-0 rounded bg-slate-200 overflow-hidden"><img src={mat.imageUrl} className="w-full h-full object-cover" /></div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-[10px] font-bold uppercase bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{mat.domain}</span>
+                                                            <span className="text-[10px] font-bold uppercase text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded">Oleh: {mat.author || 'Pak Hakam'}</span>
+                                                        </div>
+                                                        <h4 className="font-bold text-slate-900 truncate">{mat.title}</h4>
+                                                        <p className="text-sm text-slate-500 line-clamp-2 mt-1 mb-2">{mat.content}</p>
+                                                        {mat.materialUrl && (
+                                                            <a href={mat.materialUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-500 hover:text-blue-700 underline">Cek Tautan Materi</a>
+                                                        )}
+                                                    </div>
+                                                    <div className="shrink-0 flex items-center space-x-1">
+                                                        <button onClick={() => handleEditClick(mat)} className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition" title="Edit Materi"><Icons.Edit className="w-5 h-5" /></button>
+                                                        <button onClick={() => handleDeleteMaterial(mat.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition" title="Hapus Materi"><Icons.Trash className="w-5 h-5" /></button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (activeMainTab === 'chat') {
+                const activeRoomData = chatRooms.find(r => r.roomId === selectedChatRoomId);
+                return (
+                    <div className="space-y-8 animate-fade-in w-full h-[calc(100vh-140px)] flex flex-col">
+                        <div className="flex overflow-x-auto border-b-2 border-slate-200 pb-1 mb-4 gap-2 shrink-0 scrollbar-hide">
+                            <button onClick={() => setActiveMainTab('rekap')} className="px-4 py-2 font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 transition whitespace-nowrap">Rekap Asesmen</button>
+                            <button className="px-4 py-2 font-bold uppercase tracking-wider text-slate-900 border-b-4 border-amber-500 -mb-[3px] whitespace-nowrap">Konseling Interaktif</button>
+                            <button onClick={() => setActiveMainTab('materi')} className="px-4 py-2 font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 transition whitespace-nowrap">Kelola Materi BK</button>
+                        </div>
+
+                        {selectedChatRoomId ? (
+                            <div className="flex-1 w-full bg-white rounded-xl shadow border border-slate-200 overflow-hidden flex flex-col h-full relative">
+                                <ChatInterface user={{name: 'Guru BK', role: 'teacher'}} roomId={selectedChatRoomId} chats={chats} onSendChat={onSendChat} onBack={() => setSelectedChatRoomId(null)} isTeacher={true} studentName={activeRoomData?.studentName} classCode={activeRoomData?.classCode} />
+                            </div>
+                        ) : (
+                            <div className="flex-1 bg-white rounded-xl shadow border border-slate-200 overflow-hidden flex flex-col">
+                                <div className="p-5 border-b bg-slate-50 shrink-0"><h3 className="font-bold uppercase text-slate-900 flex items-center"><Icons.MessageSquare className="w-5 h-5 mr-2 text-indigo-600" /> Daftar Inbox Taruna</h3></div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                                    {chatRooms.length === 0 ? ( 
+                                        <p className="text-center text-slate-400 py-10 italic">Belum ada pesan masuk.</p> 
+                                    ) : (
+                                        chatRooms.map(room => {
+                                            return (
+                                                <div key={room.roomId} onClick={() => setSelectedChatRoomId(room.roomId)} className="flex items-center justify-between p-4 bg-white border border-slate-100 shadow-sm rounded-xl cursor-pointer hover:border-indigo-300 hover:shadow transition group">
+                                                    <div className="flex items-center min-w-0">
+                                                        <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl mr-4 shrink-0">{room.studentName.charAt(0).toUpperCase()}</div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-baseline"><h4 className="font-bold text-slate-900 truncate mr-2">{room.studentName}</h4><span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase">{room.classCode}</span></div>
+                                                            <p className="text-sm text-slate-500 truncate mt-0.5 max-w-sm">{room.lastMessage.sender === 'teacher' ? 'Anda: ' : ''}{room.lastMessage.text}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end shrink-0 ml-4"><span className="text-xs font-mono text-slate-400 mb-2">{new Date(room.lastMessage.timestamp).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}</span><Icons.ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition" /></div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-8 animate-fade-in w-full">
+                    <div className="flex overflow-x-auto border-b-2 border-slate-200 pb-1 mb-8 gap-2 scrollbar-hide">
+                        <button className="px-4 py-2 font-bold uppercase tracking-wider text-slate-900 border-b-4 border-amber-500 -mb-[3px] whitespace-nowrap">Rekap Asesmen</button>
+                        <button onClick={() => setActiveMainTab('chat')} className="px-4 py-2 font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 transition whitespace-nowrap">Konseling Interaktif</button>
+                        <button onClick={() => setActiveMainTab('materi')} className="px-4 py-2 font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 transition whitespace-nowrap">Kelola Materi BK</button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded shadow border-l-4 border-slate-900 flex flex-col justify-center">
+                            <h3 className="text-lg font-bold uppercase text-slate-800 mb-2">Total Laporan Masuk</h3>
+                            <p className="text-4xl font-bold text-slate-900">{submissions.length} <span className="text-sm font-normal text-slate-500">Berkas</span></p>
+                            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-slate-500 uppercase">
+                                <span className="flex items-center"><Icons.Activity className="w-4 h-4 mr-1 text-blue-500"/> Need Assesment: {stats.assessmentCount}</span>
+                                <span className="flex items-center"><Icons.CheckSquare className="w-4 h-4 mr-1 text-amber-500"/> DCM: {stats.dcmCount}</span>
+                                <span className="flex items-center"><Icons.FileText className="w-4 h-4 mr-1 text-indigo-500"/> S. Curhat: {submissions.filter(s => s.type === 'curhat').length}</span>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded shadow border-l-4 border-blue-500 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-bold uppercase text-slate-800 mb-4 tracking-wider">Intensitas Bidang (Need Assessment)</h3>
+                                <ul className="text-sm space-y-1">
+                                    <li className="flex items-center"><span className="w-3 h-3 bg-rose-500 rounded-full mr-2"></span> Pribadi ({stats.scores.Pribadi})</li>
+                                    <li className="flex items-center"><span className="w-3 h-3 bg-emerald-500 rounded-full mr-2"></span> Sosial ({stats.scores.Sosial})</li>
+                                    <li className="flex items-center"><span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span> Belajar ({stats.scores.Belajar})</li>
+                                    <li className="flex items-center"><span className="w-3 h-3 bg-amber-500 rounded-full mr-2"></span> Karir ({stats.scores.Karir})</li>
+                                </ul>
+                            </div>
+                            <div className="pie-chart" style={{ background: chartGradient }}><div className="pie-center">CHART<br/>ASESMEN</div></div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded shadow border-l-4 border-blue-500">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-100 pb-3 gap-4">
+                            <div className="flex items-center">
+                                <Icons.Activity className="w-6 h-6 text-blue-500 mr-2" />
+                                <h3 className="text-lg font-bold uppercase text-slate-800">Top 3 Need Assessment</h3>
+                            </div>
+                            <div className="flex rounded-md shadow-sm" role="group">
+                                <button type="button" onClick={() => setActiveStatsTab('low')} className={`px-4 py-2 text-xs font-bold uppercase border rounded-l-lg transition-colors ${activeStatsTab === 'low' ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Skor Rendah (1-2)</button>
+                                <button type="button" onClick={() => setActiveStatsTab('high')} className={`px-4 py-2 text-xs font-bold uppercase border border-l-0 rounded-r-lg transition-colors ${activeStatsTab === 'high' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Skor Tinggi (3-4)</button>
+                            </div>
+                        </div>
+                        {stats.assessmentCount === 0 ? ( <p className="text-slate-500 italic text-sm py-4 text-center">Belum ada data Need Assessment yang masuk.</p> ) : (
+                            <div>
+                                {activeStatsTab === 'low' && (
+                                    <div className="animate-fade-in">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {renderTop3List("Bidang Pribadi", stats.topAkpdLow.pribadi, "text-rose-600")}
+                                            {renderTop3List("Bidang Sosial", stats.topAkpdLow.sosial, "text-emerald-600")}
+                                            {renderTop3List("Bidang Belajar", stats.topAkpdLow.belajar, "text-blue-600")}
+                                            {renderTop3List("Bidang Karir", stats.topAkpdLow.karir, "text-amber-600")}
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-6 italic">*Skor "Tidak Setuju" / "Sangat Tidak Setuju". Mengindikasikan area masalah yang perlu dibantu.</p>
+                                    </div>
+                                )}
+                                {activeStatsTab === 'high' && (
+                                    <div className="animate-fade-in">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {renderTop3List("Bidang Pribadi", stats.topAkpdHigh.pribadi, "text-rose-600")}
+                                            {renderTop3List("Bidang Sosial", stats.topAkpdHigh.sosial, "text-emerald-600")}
+                                            {renderTop3List("Bidang Belajar", stats.topAkpdHigh.belajar, "text-blue-600")}
+                                            {renderTop3List("Bidang Karir", stats.topAkpdHigh.karir, "text-amber-600")}
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-6 italic">*Skor "Setuju" / "Sangat Setuju". Mengindikasikan potensi atau kekuatan yang sudah dimiliki.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-white p-6 rounded shadow border-l-4 border-amber-500">
+                        <div className="flex items-center mb-6 border-b border-slate-100 pb-3">
+                            <Icons.CheckSquare className="w-6 h-6 text-amber-500 mr-2" />
+                            <h3 className="text-lg font-bold uppercase text-slate-800">Top 3 Masalah DCM (Per Bidang)</h3>
+                        </div>
+                        {stats.dcmCount === 0 ? ( <p className="text-slate-500 italic text-sm py-4 text-center">Belum ada data DCM yang masuk.</p> ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {renderTop3List("Kesehatan Fisik", stats.topDcm.kesehatan, "text-red-500")}
+                                {renderTop3List("Kondisi Keluarga", stats.topDcm.keluarga, "text-indigo-500")}
+                                {renderTop3List("Keadaan Kehidupan Ekonomi", stats.topDcm["keadaan kehidupan ekonomi"], "text-purple-500")}
+                            </div>
+                        )}
+                        <p className="text-xs text-slate-400 mt-6 italic">*Dihitung berdasarkan jumlah taruna yang mencentang (mengalami) masalah tersebut.</p>
+                    </div>
+
+                    <div>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            <button onClick={() => setActiveTableTab('assessment')} className={`px-5 py-3 rounded-t-lg font-bold text-sm uppercase tracking-wider transition-all ${activeTableTab === 'assessment' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border-t-4 border-transparent'}`}><Icons.Activity className="inline w-4 h-4 mr-2 mb-0.5" /> Need Assessment</button>
+                            <button onClick={() => setActiveTableTab('dcm')} className={`px-5 py-3 rounded-t-lg font-bold text-sm uppercase tracking-wider transition-all ${activeTableTab === 'dcm' ? 'bg-amber-500 text-slate-900 shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border-t-4 border-transparent'}`}><Icons.CheckSquare className="inline w-4 h-4 mr-2 mb-0.5" /> Data DCM</button>
+                            <button onClick={() => setActiveTableTab('curhat')} className={`px-5 py-3 rounded-t-lg font-bold text-sm uppercase tracking-wider transition-all ${activeTableTab === 'curhat' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border-t-4 border-transparent'}`}><Icons.FileText className="inline w-4 h-4 mr-2 mb-0.5" /> Surat Curhat</button>
+                        </div>
+
+                        <div className={`bg-white rounded-b shadow border-t-4 ${activeTableTab === 'assessment' ? 'border-blue-600' : activeTableTab === 'dcm' ? 'border-amber-500' : 'border-indigo-600'} overflow-hidden`}>
+                            <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 gap-4">
+                                <h3 className="font-bold text-slate-900 uppercase">Daftar Siswa ({activeTableTab === 'assessment' ? 'Need Assessment' : activeTableTab === 'dcm' ? 'DCM' : 'Surat Curhat'})</h3>
+                                <div className="flex items-center space-x-3 w-full sm:w-auto">
+                                    <div className="relative flex-1">
+                                        <input type="text" placeholder="Cari Siswa/Kelas..." className="w-full pl-8 pr-4 py-2 border rounded text-sm outline-none focus:border-amber-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                                        <Icons.Search className="w-4 h-4 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                                    </div>
+                                    <button onClick={handleDownloadCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-bold uppercase tracking-wider transition flex items-center shrink-0 shadow-sm">
+                                        <Icons.Download className="w-4 h-4 mr-2" /> Unduh CSV
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-900 text-slate-200 font-bold uppercase text-xs">
+                                        <tr>
+                                            <th className="p-4 whitespace-nowrap">Waktu Kirim</th>
+                                            <th className="p-4">Nama Taruna</th>
+                                            <th className="p-4">Kelas</th>
+                                            <th className="p-4 text-center">{activeTableTab === 'assessment' ? 'Skor Max 80' : activeTableTab === 'dcm' ? 'Jml Masalah' : 'Status'}</th>
+                                            <th className="p-4 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {filtered.length === 0 ? (
+                                            <tr><td colSpan="5" className="p-8 text-center text-slate-400 italic">Belum ada data di instrumen ini.</td></tr>
+                                        ) : (
+                                            filtered.map(sub => {
+                                                return (
+                                                    <tr key={sub.id} className="hover:bg-slate-50 transition">
+                                                        <td className="p-4 text-slate-500 font-mono text-xs whitespace-nowrap">{new Date(sub.timestamp).toLocaleDateString('id-ID')}</td>
+                                                        <td className="p-4 font-bold text-slate-800">{sub.name}</td>
+                                                        <td className="p-4">{sub.classCode}</td>
+                                                        <td className="p-4 text-center font-bold text-slate-700">
+                                                            {sub.type === 'assessment' ? `${sub.scoreTotal} Poin` : sub.type === 'dcm' ? `${sub.scoreTotal} Item` : <span className="text-indigo-600 bg-indigo-100 px-2 py-1 rounded">Surat Masuk</span>}
+                                                        </td>
+                                                        <td className="p-4 text-center">
+                                                            <button onClick={() => setSelectedSub(sub)} className="text-xs font-bold uppercase bg-slate-800 text-white px-3 py-1.5 rounded hover:bg-slate-700 whitespace-nowrap transition mr-1">Buka</button>
+                                                            <button onClick={() => onDeleteSubmission(sub.id)} className="text-xs font-bold uppercase bg-red-500 text-white px-3 py-1.5 rounded hover:bg-red-600 whitespace-nowrap transition">Hapus</button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MODAL DETAIL ASESMEN / DCM / CURHAT */}
+                    {selectedSub && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+                            <div className="bg-white w-full max-w-2xl rounded-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                                <div className="bg-slate-900 text-white p-4 flex justify-between items-center shrink-0">
+                                    <h3 className="font-bold uppercase tracking-widest flex items-center"><Icons.User className="w-5 h-5 mr-2 text-amber-400"/> Arsip Individu</h3>
+                                    <button onClick={() => setSelectedSub(null)} className="p-1 rounded hover:bg-red-500 transition"><Icons.X className="w-5 h-5" /></button>
+                                </div>
+                                <div className="p-6 overflow-y-auto">
+                                    <div className="mb-6 border-b border-slate-200 pb-4">
+                                        <h2 className="text-2xl font-bold text-slate-900 uppercase">{selectedSub.name}</h2>
+                                        <p className="text-slate-600 font-medium">{selectedSub.classCode} • {new Date(selectedSub.timestamp).toLocaleString('id-ID')}</p>
+                                    </div>
+
+                                    {selectedSub.type === 'curhat' && (
+                                        <div>
+                                            <h4 className="font-bold text-sm uppercase text-indigo-700 mb-3 flex items-center"><Icons.FileText className="w-5 h-5 mr-2"/> Surat Laporan Siswa</h4>
+                                            <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 text-indigo-900 text-lg leading-relaxed whitespace-pre-wrap shadow-inner">
+                                                "{selectedSub.story}"
+                                            </div>
+                                            <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
+                                                *Tip: Jika Anda ingin membalas secara real-time, gunakan tab <b>Konseling Interaktif</b> di Dashboard Utama dan cari nama siswa ini.
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedSub.type === 'dcm' && (
+                                        <div>
+                                            <div className="flex justify-between items-center bg-amber-50 border border-amber-200 p-4 rounded mb-6">
+                                                <span className="font-bold uppercase text-sm text-amber-800">Total Masalah Tercentang</span>
+                                                <span className="text-3xl font-bold text-amber-600">{selectedSub.scoreTotal}</span>
+                                            </div>
+                                            <h4 className="font-bold text-sm uppercase text-slate-500 mb-3 border-b pb-2">Rincian Masalah yang Dialami</h4>
+                                            <ul className="space-y-2">
+                                                {selectedSub.answers.map(id => {
+                                                    return (
+                                                        <li key={id} className="flex items-start p-3 bg-slate-50 border border-slate-100 rounded text-sm text-slate-700 font-medium">
+                                                            <Icons.CheckSquare className="w-5 h-5 text-amber-500 mr-3 shrink-0" />
+                                                            {Object.values(dcmQuestions).flat().find(q => q.id === id)?.text || id}
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {selectedSub.type === 'assessment' && (
+                                        <div className="space-y-6">
+                                            <div className="flex justify-between items-center bg-blue-50 border border-blue-200 p-4 rounded">
+                                                <span className="font-bold uppercase text-sm text-blue-800">Total Skor Intensitas</span>
+                                                <span className="text-3xl font-bold text-blue-600">{selectedSub.scoreTotal} <span className="text-sm text-blue-400">/ 80</span></span>
+                                            </div>
+                                            {(selectedSub.materiDiharapkan || selectedSub.harapanSekolah) && (
+                                                <div className="border border-slate-200 rounded overflow-hidden">
+                                                    <div className="bg-slate-100 p-3 border-b border-slate-200 font-bold text-xs uppercase tracking-wider text-slate-700">Tanggapan Terbuka</div>
+                                                    <div className="p-4 space-y-4">
+                                                        <div><span className="block text-xs font-bold text-blue-600 uppercase mb-1">Materi yang Diharapkan:</span><p className="text-sm text-slate-800 bg-blue-50 p-3 rounded">"{selectedSub.materiDiharapkan}"</p></div>
+                                                        <div><span className="block text-xs font-bold text-emerald-600 uppercase mb-1">Harapan di Sekolah:</span><p className="text-sm text-slate-800 bg-emerald-50 p-3 rounded">"{selectedSub.harapanSekolah}"</p></div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <h4 className="font-bold text-sm uppercase text-slate-500 mb-3 border-b pb-2">Analisis Butir Skor Terendah (Skor 1 / 2)</h4>
+                                                <div className="space-y-2">
+                                                    {Object.entries(selectedSub.answers).map(([key, val]) => {
+                                                        if (val > 2) return null;
+                                                        return (
+                                                            <div key={key} className="flex justify-between items-center p-3 border border-slate-100 bg-slate-50 rounded">
+                                                                <span className="text-sm font-medium text-slate-700 pr-4 leading-relaxed">
+                                                                    <span className={`font-bold mr-2 px-1.5 py-0.5 text-xs rounded text-white ${key.startsWith('P') ? 'bg-rose-500': key.startsWith('S') ? 'bg-emerald-500': key.startsWith('B')?'bg-blue-500':'bg-amber-500'}`}>{key}</span> 
+                                                                    {Object.values(akpdQuestions).flat().find(q => q.id === key)?.text || key}
+                                                                </span>
+                                                                <span className={`font-bold text-base shrink-0 px-3 py-1 rounded ${val===1 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>{val}</span>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
